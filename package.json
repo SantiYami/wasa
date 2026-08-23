@@ -11,9 +11,12 @@
   "keywords": [
     "whatsapp",
     "baileys",
-    "api",
-    "rest",
-    "bot"
+    "whatsapp-api",
+    "rest-api",
+    "whatsapp-bot",
+    "express",
+    "nodejs",
+    "wasa"
   ],
   "author": "",
   "license": "MIT",
