@@ -1,0 +1,29 @@
+{
+  "name": "wasa",
+  "version": "1.0.0",
+  "description": "Lightweight, headless WhatsApp REST API built with Baileys",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "keywords": [
+    "whatsapp",
+    "baileys",
+    "api",
+    "rest",
+    "bot"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@whiskeysockets/baileys": "^7.0.0-rc14",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "pino": "^9.6.0",
+    "pino-pretty": "^13.0.0",
+    "qrcode": "^1.5.4"
+  }
+}
