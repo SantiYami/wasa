@@ -111,21 +111,31 @@ Cierra la sesión y elimina las credenciales locales de `./sessions` para inicia
 > El campo `to` acepta el número con código de país (ej. `573001234567`), con signos (ej. `+57 300 123 4567`) o en formato JID (`573001234567@s.whatsapp.net` o grupos `123456@g.us`). Se normaliza automáticamente.
 
 #### **`POST /api/messages/send-text`**
-Envía un mensaje de texto simple.
+Envía un mensaje de texto simple (con soporte para menciones/etiquetas en grupos).
 ```json
-// Body:
+// Body básico:
 {
   "to": "573001234567",
   "message": "¡Hola! Mensaje enviado desde Wasa."
+}
+
+// Enviar a un grupo con mención (Auto-detecta @número o usando el array 'mentions'):
+{
+  "to": "120363023456789012@g.us",
+  "message": "Hola @573001234567, ¡bienvenido al grupo!",
+  "mentions": ["573001234567"] // Opcional si ya está en el texto como @573001234567
 }
 ```
 **Respuesta:**
 ```json
 {
   "success": true,
-  "to": "573001234567@s.whatsapp.net",
+  "to": "120363023456789012@g.us",
   "messageId": "3EB0ABC12345",
-  "timestamp": 1724430000
+  "timestamp": 1724430000,
+  "mentions": [
+    "573001234567@s.whatsapp.net"
+  ]
 }
 ```
 

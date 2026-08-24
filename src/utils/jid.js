@@ -25,3 +25,47 @@ export function formatToJid(input) {
 
   return `${cleanNumber}@s.whatsapp.net`;
 }
+
+/**
+ * Extrae menciones desde el texto (@57300...) y las combina con menciones explícitas.
+ * Retorna un array de JIDs normalizados (@s.whatsapp.net).
+ * 
+ * @param {string} [text] - Texto que puede contener menciones (@numero)
+ * @param {string[]|string} [explicitMentions] - Lista de números o JIDs explícitos
+ * @returns {string[]} Lista de JIDs únicos
+ */
+export function extractMentions(text = '', explicitMentions = []) {
+  const mentionsSet = new Set();
+
+  // 1. Extraer menciones con regex del texto si existe
+  if (typeof text === 'string' && text) {
+    const matches = text.match(/@(\d{7,16})/g);
+    if (matches) {
+      for (const match of matches) {
+        const phone = match.replace('@', '');
+        try {
+          mentionsSet.add(formatToJid(phone));
+        } catch {
+          // Ignorar si no es un formato válido
+        }
+      }
+    }
+  }
+
+  // 2. Procesar menciones explícitas si se enviaron
+  const explicitArray = Array.isArray(explicitMentions)
+    ? explicitMentions
+    : explicitMentions ? [explicitMentions] : [];
+
+  for (const item of explicitArray) {
+    if (typeof item === 'string' && item.trim()) {
+      try {
+        mentionsSet.add(formatToJid(item));
+      } catch {
+        // Ignorar si el formato es inválido
+      }
+    }
+  }
+
+  return Array.from(mentionsSet);
+}

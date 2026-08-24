@@ -9,7 +9,7 @@ import fs from 'fs';
 import { rm } from 'fs/promises';
 import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
-import { formatToJid } from '../utils/jid.js';
+import { formatToJid, extractMentions } from '../utils/jid.js';
 
 export const ConnectionStatus = {
   DISCONNECTED: 'DISCONNECTED',
@@ -239,14 +239,24 @@ class BaileysService {
     }
 
     const jid = formatToJid(to);
+    const { mentions: explicitMentions, ...otherOptions } = options;
+    const mentions = extractMentions(message, explicitMentions);
+
+    const messagePayload = { text: message, ...otherOptions };
+    if (mentions.length > 0) {
+      messagePayload.mentions = mentions;
+      logger.info({ mentions }, `Menciones incluidas en el mensaje: ${mentions.join(', ')}`);
+    }
+
     logger.info(`Enviando mensaje de texto a ${jid}`);
 
-    const result = await this.sock.sendMessage(jid, { text: message, ...options });
+    const result = await this.sock.sendMessage(jid, messagePayload);
     return {
       success: true,
       to: jid,
       messageId: result.key.id,
       timestamp: result.messageTimestamp,
+      mentions: mentions.length > 0 ? mentions : undefined,
     };
   }
 
@@ -262,8 +272,9 @@ class BaileysService {
    * @param {string} [media.fileName] - Nombre de archivo (para documentos)
    * @param {string} [media.mimetype] - Mimetype explícito
    * @param {boolean} [media.ptt] - Si es nota de voz (audio tipo PTT)
+   * @param {string[]|string} [media.mentions] - Menciones explícitas
    */
-  async sendMediaMessage(to, { type, url, base64, caption, fileName, mimetype, ptt = false }) {
+  async sendMediaMessage(to, { type, url, base64, caption, fileName, mimetype, ptt = false, mentions: explicitMentions }) {
     if (this.status !== ConnectionStatus.CONNECTED || !this.sock) {
       throw new Error('No hay una sesión activa de WhatsApp conectada.');
     }
@@ -300,6 +311,12 @@ class BaileysService {
       messagePayload.ptt = true;
     }
 
+    const mentions = extractMentions(caption, explicitMentions);
+    if (mentions.length > 0) {
+      messagePayload.mentions = mentions;
+      logger.info({ mentions }, `Menciones incluidas en multimedia: ${mentions.join(', ')}`);
+    }
+
     logger.info(`Enviando archivo multimedia [${type}] a ${jid}`);
     const result = await this.sock.sendMessage(jid, messagePayload);
 
@@ -309,6 +326,7 @@ class BaileysService {
       type,
       messageId: result.key.id,
       timestamp: result.messageTimestamp,
+      mentions: mentions.length > 0 ? mentions : undefined,
     };
   }
 

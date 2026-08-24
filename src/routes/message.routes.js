@@ -7,10 +7,14 @@ export const messageRouter = Router();
 /**
  * POST /api/messages/send-text
  * Enviar mensaje de texto simple
- * Body: { "to": "573001234567", "message": "Hola mundo" }
+ * Body: {
+ *   "to": "573001234567" o "120363023456789012@g.us",
+ *   "message": "Hola @573001234567",
+ *   "mentions": ["573001234567"] // Opcional: auto-detecta @numeros del texto si no se pasa
+ * }
  */
 messageRouter.post('/send-text', async (req, res) => {
-  const { to, message } = req.body;
+  const { to, message, mentions } = req.body;
 
   if (!to || !message) {
     return res.status(400).json({
@@ -19,7 +23,7 @@ messageRouter.post('/send-text', async (req, res) => {
   }
 
   try {
-    const result = await baileysService.sendTextMessage(to, message);
+    const result = await baileysService.sendTextMessage(to, message, { mentions });
     res.json(result);
   } catch (error) {
     logger.error({ err: error }, 'Error enviando mensaje de texto');
@@ -34,12 +38,13 @@ messageRouter.post('/send-text', async (req, res) => {
  *   "to": "573001234567",
  *   "type": "image" | "document" | "video" | "audio",
  *   "url": "https://ejemplo.com/archivo.jpg", // o "base64": "..."
- *   "caption": "Opcional leyenda",
- *   "fileName": "documento.pdf"
+ *   "caption": "Opcional leyenda con @573001234567",
+ *   "fileName": "documento.pdf",
+ *   "mentions": ["573001234567"] // Opcional
  * }
  */
 messageRouter.post('/send-media', async (req, res) => {
-  const { to, type, url, base64, caption, fileName, mimetype, ptt } = req.body;
+  const { to, type, url, base64, caption, fileName, mimetype, ptt, mentions } = req.body;
 
   if (!to || !type || (!url && !base64)) {
     return res.status(400).json({
@@ -56,6 +61,7 @@ messageRouter.post('/send-media', async (req, res) => {
       fileName,
       mimetype,
       ptt,
+      mentions,
     });
     res.json(result);
   } catch (error) {
@@ -70,11 +76,12 @@ messageRouter.post('/send-media', async (req, res) => {
  * Body: {
  *   "recipients": ["573001234567", "573009876543"],
  *   "message": "Hola a todos",
- *   "delayMs": 1500
+ *   "delayMs": 1500,
+ *   "mentions": ["573001234567"] // Opcional
  * }
  */
 messageRouter.post('/send-bulk', async (req, res) => {
-  const { recipients, message, delayMs = 1500 } = req.body;
+  const { recipients, message, delayMs = 1500, mentions } = req.body;
 
   if (!Array.isArray(recipients) || recipients.length === 0 || !message) {
     return res.status(400).json({
@@ -86,8 +93,8 @@ messageRouter.post('/send-bulk', async (req, res) => {
 
   for (const to of recipients) {
     try {
-      const sent = await baileysService.sendTextMessage(to, message);
-      results.push({ to, success: true, messageId: sent.messageId });
+      const sent = await baileysService.sendTextMessage(to, message, { mentions });
+      results.push({ to, success: true, messageId: sent.messageId, mentions: sent.mentions });
     } catch (err) {
       results.push({ to, success: false, error: err.message });
     }
