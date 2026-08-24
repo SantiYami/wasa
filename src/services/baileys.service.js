@@ -95,10 +95,10 @@ class BaileysService {
         try {
           this.qrImage = await QRCode.toDataURL(qr);
         } catch (err) {
-          logger.error({ err }, 'Error generando codigo QR en Base64');
+          logger.error({ err }, 'Error generando código QR en Base64');
         }
         this.status = ConnectionStatus.QR_READY;
-        logger.info('Nuevo codigo QR generado y listo para escanear');
+        logger.info('Nuevo código QR generado y listo para escanear');
       }
 
       if (connection === 'close') {
@@ -110,13 +110,13 @@ class BaileysService {
         this.qrImage = null;
         this.user = null;
 
-        logger.warn(`Conexion cerrada. Codigo razon: ${statusCode}. Reconectar: ${shouldReconnect}`);
+        logger.warn(`Conexión cerrada. Código razón: ${statusCode}. Reconectar: ${shouldReconnect}`);
 
         if (shouldReconnect) {
           logger.info('Intentando reconectar en 3 segundos...');
           setTimeout(() => this.init(), 3000);
         } else {
-          logger.warn('Sesion cerrada permanentemente (Logged Out). Limpiando credenciales...');
+          logger.warn('Sesión cerrada permanentemente (Logged Out). Limpiando credenciales...');
           await this.clearSession();
         }
       } else if (connection === 'open') {
