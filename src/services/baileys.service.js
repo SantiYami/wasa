@@ -112,7 +112,10 @@ class BaileysService {
 
         logger.warn(`Conexión cerrada. Código razón: ${statusCode}. Reconectar: ${shouldReconnect}`);
 
-        if (shouldReconnect) {
+        if (statusCode === DisconnectReason.restartRequired) {
+          logger.info('Completando sincronización de credenciales (reinicio requerido por WhatsApp)...');
+          this.init();
+        } else if (shouldReconnect) {
           logger.info('Intentando reconectar en 3 segundos...');
           setTimeout(() => this.init(), 3000);
         } else {
