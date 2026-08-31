@@ -27,6 +27,36 @@ class BaileysService {
     this.user = null;
     this.saveCreds = null;
     this.isInitializing = false;
+    this.reconnectTimeout = null;
+  }
+
+  /**
+   * Destruye y libera los recursos del socket anterior para evitar fugas de memoria.
+   */
+  _destroySocket() {
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+
+    if (this.sock) {
+      try {
+        // Remover listeners para evitar fugas de memoria por referencias colgadas
+        if (this.sock.ev && typeof this.sock.ev.removeAllListeners === 'function') {
+          this.sock.ev.removeAllListeners();
+        }
+        // Cerrar conexión de websocket subyacente
+        if (this.sock.ws) {
+          this.sock.ws.close();
+        }
+        if (typeof this.sock.end === 'function') {
+          this.sock.end(undefined);
+        }
+      } catch (err) {
+        logger.debug({ err }, 'Error al liberar recursos del socket anterior');
+      }
+      this.sock = null;
+    }
   }
 
   /**
@@ -37,6 +67,9 @@ class BaileysService {
       logger.warn('La inicialización de Baileys ya está en progreso...');
       return;
     }
+
+    // Limpiar socket anterior y timers antes de instanciar uno nuevo
+    this._destroySocket();
 
     this.isInitializing = true;
     this.status = ConnectionStatus.CONNECTING;
@@ -76,6 +109,7 @@ class BaileysService {
     } catch (error) {
       logger.error({ err: error }, 'Error al inicializar Baileys');
       this.status = ConnectionStatus.DISCONNECTED;
+      this._destroySocket();
     } finally {
       this.isInitializing = false;
     }
@@ -112,12 +146,20 @@ class BaileysService {
 
         logger.warn(`Conexión cerrada. Código razón: ${statusCode}. Reconectar: ${shouldReconnect}`);
 
+        if (this.reconnectTimeout) {
+          clearTimeout(this.reconnectTimeout);
+          this.reconnectTimeout = null;
+        }
+
         if (statusCode === DisconnectReason.restartRequired) {
           logger.info('Completando sincronización de credenciales (reinicio requerido por WhatsApp)...');
           this.init();
         } else if (shouldReconnect) {
           logger.info('Intentando reconectar en 3 segundos...');
-          setTimeout(() => this.init(), 3000);
+          this.reconnectTimeout = setTimeout(() => {
+            this.reconnectTimeout = null;
+            this.init();
+          }, 3000);
         } else {
           logger.warn('Sesión cerrada permanentemente (Logged Out). Limpiando credenciales...');
           await this.clearSession();
@@ -345,7 +387,7 @@ class BaileysService {
       // Ignorar si ya estaba cerrado
     }
 
-    this.sock = null;
+    this._destroySocket();
     this.status = ConnectionStatus.DISCONNECTED;
     this.qrRaw = null;
     this.qrImage = null;
@@ -365,11 +407,7 @@ class BaileysService {
    */
   async restart() {
     logger.info('Reiniciando conexión de Baileys...');
-    if (this.sock) {
-      try {
-        this.sock.end(undefined);
-      } catch (e) {}
-    }
+    this._destroySocket();
     await this.init();
   }
 }
